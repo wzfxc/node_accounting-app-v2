@@ -3,15 +3,13 @@
 const express = require('express');
 
 function createServer() {
-  // Use express to create a server
-  // Add a routes to the server
-  // Return the server (express app)
-
   const app = express();
 
   let users = [];
+  let expenses = [];
 
   let nextUserId = 1;
+  let nextExpenseId = 1;
 
   app.use(express.json());
 
@@ -25,6 +23,10 @@ function createServer() {
 
   app.get('/users/:id', (req, res) => {
     const id = Number(req.params.id);
+
+    if (Number.isNaN(id)) {
+      return res.status(400).send('Bad Request');
+    }
 
     const reqId = users.find((user) => user.id === id);
 
@@ -72,9 +74,14 @@ function createServer() {
 
   app.put('/users/:id', (req, res) => {
     const id = Number(req.params.id);
-    const { name } = req.body;
 
     if (Number.isNaN(id)) {
+      return res.status(400).send('Bad Request');
+    }
+
+    const { name } = req.body;
+
+    if (typeof name !== 'string' || name.trim() === '') {
       return res.status(400).send('Bad Request');
     }
 
@@ -91,6 +98,163 @@ function createServer() {
     Object.assign(userToUpdate, { name });
 
     res.status(200).json(userToUpdate);
+  });
+
+  app.get('/expenses', (req, res) => {
+    let filteredExpenses = [...expenses];
+    const { userId, category, from, to } = req.query;
+
+    if (userId) {
+      filteredExpenses = filteredExpenses.filter(
+        (expense) => expense.userId === Number(userId),
+      );
+    }
+
+    if (category) {
+      filteredExpenses = filteredExpenses.filter(
+        (expense) => expense.category === category,
+      );
+    }
+
+    if (from) {
+      filteredExpenses = filteredExpenses.filter(
+        (expense) => expense.spentAt >= from,
+      );
+    }
+
+    if (to) {
+      filteredExpenses = filteredExpenses.filter(
+        (expense) => expense.spentAt <= to,
+      );
+    }
+
+    res.json(filteredExpenses);
+  });
+
+  app.get('/expenses/:id', (req, res) => {
+    const id = Number(req.params.id);
+
+    if (Number.isNaN(id)) {
+      return res.status(400).send('Bad Request');
+    }
+
+    const reqId = expenses.find((expense) => expense.id === id);
+
+    if (!reqId) {
+      return res.status(404).send('Not Found');
+    }
+
+    res.json(reqId);
+  });
+
+  app.post('/expenses', (req, res) => {
+    const { userId, spentAt, title, amount, category, note } = req.body;
+
+    if (Number.isNaN(Number(userId))) {
+      return res.status(400).send('Bad Request');
+    }
+
+    if (typeof title !== 'string' || title.trim() === '') {
+      return res.status(400).send('Bad Request');
+    }
+
+    if (typeof category !== 'string' || category.trim() === '') {
+      return res.status(400).send('Bad Request');
+    }
+
+    if (typeof note !== 'string') {
+      return res.status(400).send('Bad Request');
+    }
+
+    if (Number.isNaN(Number(amount))) {
+      return res.status(400).send('Bad Request');
+    }
+
+    const userExists = users.some((u) => u.id === Number(userId));
+
+    if (!userExists) {
+      return res.status(400).send('Bad Request');
+    }
+
+    let spentAtValue;
+
+    if (spentAt) {
+      const d = new Date(spentAt);
+
+      if (Number.isNaN(d.getTime())) {
+        return res.status(400).send('Bad Request');
+      }
+      spentAtValue = d.toISOString();
+    } else {
+      spentAtValue = new Date().toISOString();
+    }
+
+    const expense = {
+      id: nextExpenseId++,
+      userId: Number(userId),
+      spentAt: spentAtValue,
+      title,
+      amount: Number(amount),
+      category,
+      note,
+    };
+
+    expenses.push(expense);
+
+    return res.status(201).json(expense);
+  });
+
+  app.put('/expenses/:id', (req, res) => {
+    const id = Number(req.params.id);
+
+    if (Number.isNaN(id)) {
+      return res.status(400).send('Bad Request');
+    }
+
+    const { userId, title, amount, category, note } = req.body;
+
+    if (!userId || !title || !amount || !category || !note) {
+      return res.status(400).send('Bad Request');
+    }
+
+    const userExists = users.some((u) => u.id === Number(userId));
+
+    if (!userExists) {
+      return res.status(400).send('Bad Request');
+    }
+
+    const expenseToUpdate = expenses.find((expense) => expense.id === id);
+
+    if (!expenseToUpdate) {
+      return res.status(404).send('Not Found');
+    }
+
+    Object.assign(expenseToUpdate, {
+      userId: Number(userId),
+      title,
+      amount: Number(amount),
+      category,
+      note,
+    });
+
+    res.status(200).json(expenseToUpdate);
+  });
+
+  app.delete('/expenses/:id', (req, res) => {
+    const id = Number(req.params.id);
+    const newExpenses = expenses.filter((expense) => expense.id !== id);
+
+    if (expenses.length === newExpenses.length) {
+      return res.status(404).send('Not Found');
+    }
+
+    if (Number.isNaN(id)) {
+      return res.status(400).send('Bad Request');
+    }
+
+    expenses = newExpenses;
+
+    res.status(204).json(expenses);
   });
 
   return app;
