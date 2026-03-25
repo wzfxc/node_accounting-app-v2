@@ -147,38 +147,46 @@ function createServer() {
   app.post('/expenses', (req, res) => {
     const { userId, spentAt, title, amount, category, note } = req.body;
 
-    if (
-      userId === undefined ||
-      !title ||
-      amount === undefined ||
-      !category ||
-      !note
-    ) {
+    const parsedUserId = Number(userId);
+    const parsedAmount = Number(amount);
+
+    if (Number.isNaN(parsedUserId)) {
       return res.status(400).send('Bad Request');
     }
 
-    const userExists = users.some((user) => user.id === Number(userId));
+    if (Number.isNaN(parsedAmount)) {
+      return res.status(400).send('Bad Request');
+    }
+
+    if (typeof title !== 'string' || title.trim() === '') {
+      return res.status(400).send('Bad Request');
+    }
+
+    if (typeof category !== 'string' || category.trim() === '') {
+      return res.status(400).send('Bad Request');
+    }
+
+    if (typeof note !== 'string') {
+      return res.status(400).send('Bad Request');
+    }
+
+    const userExists = users.some((user) => user.id === parsedUserId);
 
     if (!userExists) {
       return res.status(400).send('Bad Request');
     }
 
-    if (Number.isNaN(Number(userId))) {
-      return res.status(400).send('Bad Request');
-    }
-
-    const id = nextExpenseId++;
-    // const spentAt = new Date().toISOString();
     const expense = {
-      id,
-      userId: Number(userId),
+      id: nextExpenseId,
+      userId: parsedUserId,
       spentAt,
       title,
-      amount: Number(amount),
+      amount: parsedAmount,
       category,
       note,
     };
 
+    nextExpenseId += 1;
     expenses.push(expense);
 
     return res.status(201).json(expense);
@@ -193,37 +201,63 @@ function createServer() {
 
     const { userId, title, amount, category, note } = req.body;
 
-    if (!userId || !title || amount === undefined || !category || !note) {
+    const parsedUserId = Number(userId);
+    const parsedAmount = Number(amount);
+
+    if (Number.isNaN(parsedUserId)) {
       return res.status(400).send('Bad Request');
     }
 
-    const expenseToUpdate = expenses.find((expense) => expense.id === id);
+    if (Number.isNaN(parsedAmount)) {
+      return res.status(400).send('Bad Request');
+    }
 
-    if (!expenseToUpdate) {
+    if (typeof title !== 'string' || title.trim() === '') {
+      return res.status(400).send('Bad Request');
+    }
+
+    if (typeof category !== 'string' || category.trim() === '') {
+      return res.status(400).send('Bad Request');
+    }
+
+    if (typeof note !== 'string') {
+      return res.status(400).send('Bad Request');
+    }
+
+    const userExists = users.some((user) => user.id === parsedUserId);
+
+    if (!userExists) {
+      return res.status(400).send('Bad Request');
+    }
+
+    const expense = expenses.find((e) => e.id === id);
+
+    if (!expense) {
       return res.status(404).send('Not Found');
     }
 
-    Object.assign(expenseToUpdate, {
-      userId: Number(userId),
+    Object.assign(expense, {
+      userId: parsedUserId,
       title,
-      amount: Number(amount),
+      amount: parsedAmount,
       category,
       note,
     });
 
-    res.status(200).json(expenseToUpdate);
+    return res.status(200).json(expense);
   });
 
   app.delete('/expenses/:id', (req, res) => {
     const id = Number(req.params.id);
+
+    if (Number.isNaN(id)) {
+      return res.status(400).send('Bad Request');
+    }
+
     const newExpenses = expenses.filter((expense) => expense.id !== id);
 
     if (expenses.length === newExpenses.length) {
       return res.status(404).send('Not Found');
-    }
-
-    if (Number.isNaN(id)) {
-      return res.status(400).send('Bad Request');
     }
 
     expenses = newExpenses;
