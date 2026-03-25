@@ -150,49 +150,32 @@ function createServer() {
   app.post('/expenses', (req, res) => {
     const { userId, spentAt, title, amount, category, note } = req.body;
 
-    if (Number.isNaN(Number(userId))) {
+    if (
+      userId === undefined ||
+      !title ||
+      amount === undefined ||
+      !category ||
+      !note
+    ) {
       return res.status(400).send('Bad Request');
     }
 
-    if (typeof title !== 'string' || title.trim() === '') {
-      return res.status(400).send('Bad Request');
-    }
-
-    if (typeof category !== 'string' || category.trim() === '') {
-      return res.status(400).send('Bad Request');
-    }
-
-    if (typeof note !== 'string') {
-      return res.status(400).send('Bad Request');
-    }
-
-    if (Number.isNaN(Number(amount))) {
-      return res.status(400).send('Bad Request');
-    }
-
-    const userExists = users.some((u) => u.id === Number(userId));
+    const userExists = users.some((user) => user.id === Number(userId));
 
     if (!userExists) {
       return res.status(400).send('Bad Request');
     }
 
-    let spentAtValue;
-
-    if (spentAt) {
-      const d = new Date(spentAt);
-
-      if (Number.isNaN(d.getTime())) {
-        return res.status(400).send('Bad Request');
-      }
-      spentAtValue = d.toISOString();
-    } else {
-      spentAtValue = new Date().toISOString();
+    if (Number.isNaN(Number(userId))) {
+      return res.status(400).send('Bad Request');
     }
 
+    const id = nextExpenseId++;
+    // const spentAt = new Date().toISOString();
     const expense = {
-      id: nextExpenseId++,
+      id,
       userId: Number(userId),
-      spentAt: spentAtValue,
+      spentAt,
       title,
       amount: Number(amount),
       category,
@@ -214,12 +197,6 @@ function createServer() {
     const { userId, title, amount, category, note } = req.body;
 
     if (!userId || !title || !amount || !category || !note) {
-      return res.status(400).send('Bad Request');
-    }
-
-    const userExists = users.some((u) => u.id === Number(userId));
-
-    if (!userExists) {
       return res.status(400).send('Bad Request');
     }
 
