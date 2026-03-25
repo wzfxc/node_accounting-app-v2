@@ -176,10 +176,24 @@ function createServer() {
       return res.status(400).send('Bad Request');
     }
 
+    let spentAtValue;
+
+    if (spentAt !== undefined) {
+      const date = new Date(spentAt);
+
+      if (Number.isNaN(date.getTime())) {
+        return res.status(400).send('Bad Request');
+      }
+
+      spentAtValue = date.toISOString();
+    } else {
+      spentAtValue = new Date().toISOString();
+    }
+
     const expense = {
       id: nextExpenseId,
       userId: parsedUserId,
-      spentAt,
+      spentAt: spentAtValue,
       title,
       amount: parsedAmount,
       category,
