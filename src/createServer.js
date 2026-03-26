@@ -213,7 +213,7 @@ function createServer() {
       return res.status(400).send('Bad Request');
     }
 
-    const { userId, title, amount, category, note } = req.body;
+    const { userId, title, spentAt, amount, category, note } = req.body;
 
     const parsedUserId = Number(userId);
     const parsedAmount = Number(amount);
@@ -244,6 +244,20 @@ function createServer() {
       return res.status(400).send('Bad Request');
     }
 
+    let spentAtValue;
+
+    if (spentAt !== undefined) {
+      const date = new Date(spentAt);
+
+      if (Number.isNaN(date.getTime())) {
+        return res.status(400).send('Bad Request');
+      }
+
+      spentAtValue = date.toISOString();
+    } else {
+      spentAtValue = new Date().toISOString();
+    }
+
     const expense = expenses.find((e) => e.id === id);
 
     if (!expense) {
@@ -253,6 +267,7 @@ function createServer() {
     Object.assign(expense, {
       userId: parsedUserId,
       title,
+      spentAt: spentAtValue,
       amount: parsedAmount,
       category,
       note,
